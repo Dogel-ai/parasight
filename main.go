@@ -10,7 +10,7 @@ import (
 func main() {
 	imagePath := "example-image.png"
 	//inputData := []uint8{72, 101, 108, 108, 111}
-	inputData := "According to all known laws of aviation, there is no way a bee should be able to fly. Its wings are too small to get its fat little body off the ground. The bee, of course, flies anyway because bees don't care what humans think is impossible. Yellow, black. Yellow, black. Yellow, black. Yellow, black. Ooh, black and yellow! Let's shake it up a little."
+	inputData := "Hello"
 
 	_, _, err := getBytes(imagePath)
 	if err != nil {
@@ -34,12 +34,8 @@ func getDataMask(inputData []uint8) ([][]uint8, error) {
 		// Each index indicates each bit of each value provided in array/slice of data.
 		dataBytes[dataBytesIndex] = make([]uint8, 8)
 		for dataBitsIndex := range 8 {
-			var currentBit uint8
-			if dataBitsIndex == 0 {
-				currentBit = (inputData[dataBytesIndex] & 1)
-			} else {
-				currentBit = (inputData[dataBytesIndex] & uint8(getIntPower(2, dataBitsIndex)))
-			}
+			currentBit := (inputData[dataBytesIndex] & uint8(getIntPower(2, dataBitsIndex)))
+
 			// [7-dataBitsIndex] inverts the order bits are pushed onto the slice. Removing 7- will cause a flip: [0 64 0 0 8 0 0 0] -> [0 0 0 8 0 0 64 0]
 			dataBytes[dataBytesIndex][7-dataBitsIndex] = currentBit
 		}
