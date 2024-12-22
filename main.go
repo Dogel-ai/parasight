@@ -7,33 +7,52 @@ import (
 	"os"
 )
 
+const BitsInByte = 8
+
 func main() {
+	var dataMask [][]uint8
 	imagePath := "example-image.png"
 	//inputData := []uint8{72, 101, 108, 108, 111}
 	inputData := "Hello"
 
-	_, _, err := getBytes(imagePath)
+	// Opens actual image.
+	image, err := os.Open(imagePath)
+	if err != nil {
+		log.Fatal("Failed to open image: ", err)
+	}
+	defer image.Close()
+
+	// Gets bytes of image and dumps into single array with totaled numbers
+	imageBytes, err := getBytes(image, len(inputData)*BitsInByte)
 	if err != nil {
 		log.Fatal("Reading image failed: ", err)
 	}
 
-	var dataMask [][]uint8
+	// Converts the bytes array into 2D slice containing separate bits
+	imageBits, err := getBitSlice(imageBytes)
+	if err != nil {
+		log.Fatal("Converting to bit slice failed: ", err)
+	}
+
+	// Converts inputted data into 2D slice of bits
 	if typeOf(inputData) == "string" {
-		dataMask, _ = getDataMask(stringToUint8(inputData))
+		dataMask, _ = getBitSlice(stringToUint8(inputData))
 	} else {
 		//dataMask, _ = getDataMask(inputData)
 	}
+
 	fmt.Println(dataMask)
+	fmt.Println(imageBits)
 }
 
-// TODO: Make more performant. Reduce var assignments? Currently O(n)
-func getDataMask(inputData []uint8) ([][]uint8, error) {
+// TODO: Make more performant. Currently O(n)
+func getBitSlice(inputData []uint8) ([][]uint8, error) {
 	dataBytes := make([][]uint8, len(inputData))
 	// Each index indicates each value in provided array/slice of data.
 	for dataBytesIndex := range len(dataBytes) {
 		// Each index indicates each bit of each value provided in array/slice of data.
-		dataBytes[dataBytesIndex] = make([]uint8, 8)
-		for dataBitsIndex := range 8 {
+		dataBytes[dataBytesIndex] = make([]uint8, BitsInByte)
+		for dataBitsIndex := range BitsInByte {
 			currentBit := (inputData[dataBytesIndex] & uint8(getIntPower(2, dataBitsIndex)))
 
 			// [7-dataBitsIndex] inverts the order bits are pushed onto the slice. Removing 7- will cause a flip: [0 64 0 0 8 0 0 0] -> [0 0 0 8 0 0 64 0]
@@ -43,28 +62,14 @@ func getDataMask(inputData []uint8) ([][]uint8, error) {
 	return dataBytes, nil
 }
 
-func getBytes(imagePath string) ([]uint8, int, error) {
-	var imageBytes []uint8
-	var size int
-
-	image, err := os.Open(imagePath)
-	if err != nil {
-		return imageBytes, size, fmt.Errorf("failed to open image: %w", err)
-	}
-	defer image.Close()
-
-	fileInfo, err := image.Stat()
-	if err != nil {
-		return imageBytes, size, fmt.Errorf("failed to read image properties: %w", err)
-	}
-	size = int(fileInfo.Size())
-	imageBytes = make([]uint8, size)
+func getBytes(image *os.File, size int) ([]uint8, error) {
+	imageBytes := make([]uint8, size)
 
 	reader := bufio.NewReader(image)
-	_, err = reader.Read(imageBytes)
+	_, err := reader.Read(imageBytes)
 	if err != nil {
-		return imageBytes, size, fmt.Errorf("failed to read image bytes: %w", err)
+		return imageBytes, fmt.Errorf("failed to read image bytes: %w", err)
 	}
 
-	return imageBytes, size, nil
+	return imageBytes, nil
 }
