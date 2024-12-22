@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 func getIntPower(base, power int) int {
 	calculatedInt := 1
 	for power != 0 {
@@ -11,14 +9,10 @@ func getIntPower(base, power int) int {
 	return calculatedInt
 }
 
-func typeOf(variable interface{}) string {
-	return fmt.Sprintf("%T", variable)
-}
-
-func stringToUint8(str string) []uint8 {
-	convertedSlice := make([]uint8, len(str))
-	for characterIndex := range len(str) {
-		convertedSlice[characterIndex] = str[characterIndex]
+func stringToUint8(data string) []uint8 {
+	convertedSlice := make([]uint8, len(data))
+	for characterIndex := range len(data) {
+		convertedSlice[characterIndex] = data[characterIndex]
 	}
 	return convertedSlice
 }
