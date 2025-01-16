@@ -7,57 +7,25 @@ import (
 	"os"
 )
 
-const BitsInByte = 8
-
 func main() {
-	var dataMask [][]uint8
-	imagePath := "example-image.png"
-
-	inputData, err := getConvertedInput()
+	input, err := getInput()
 	if err != nil {
-		log.Fatal("Failed getting input: ", err)
+		log.Fatal(err)
 	}
 
-	// Opens actual image.
-	image, err := os.Open(imagePath)
+	hideMessageInImage("input.png", "out.png", input)
+
+	message, err := extractMessageFromImage("out.png")
 	if err != nil {
-		log.Fatal("Failed to open image: ", err)
+		log.Fatal(err)
+	} else {
+		log.Print("Extracted Message:", message)
 	}
-	defer image.Close()
-
-	// Gets bytes of image and dumps into single array with totaled numbers
-	imageBytes, err := getBytes(image, len(inputData)*BitsInByte)
-	if err != nil {
-		log.Fatal("Reading image failed: ", err)
-	}
-
-	// Converts the bytes array into 2D slice containing separate bits
-	imageBits, err := getBitSlice(imageBytes)
-	if err != nil {
-		log.Fatal("Converting to bit slice failed: ", err)
-	}
-
-	// Converts inputted data into 2D slice of bits
-	dataMask, _ = getBitSlice(inputData)
-
-	fmt.Println("Data Mask:", dataMask)
-	fmt.Println("Image Bits Slices:", imageBits)
 }
 
-// Unsure if getConvertedInput works correctly. I need to write to new file to figure out
-func writeToFile([]uint8) {
-
-}
-
-func getConvertedInput() ([]uint8, error) {
-	// TODO: Backup original file. Add confirmation. Add unsupported prompt
-	//		 This function needs some solid cleanup
-	//		 Write tests for this
-	//		 Really needs comments as well
-	//		 Add option for string/text. Use stringToUint8 in execution
-
+func getInput() (string, error) {
 	var userChoice string = "data"
-	var userData []uint8
+	var userData string
 	var zeroesOffset int
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -66,7 +34,7 @@ func getConvertedInput() ([]uint8, error) {
 	fmt.Print("(default=data) ")
 	scanner.Scan()
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed reading input: %w", err)
+		return userData, fmt.Errorf("failed reading input: %w", err)
 	}
 	if scanner.Text() != "" {
 		userChoice = scanner.Text()
@@ -75,7 +43,7 @@ func getConvertedInput() ([]uint8, error) {
 	fmt.Print("Input data/path: ")
 	scanner.Scan()
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed reading input: %w", err)
+		return userData, fmt.Errorf("failed reading input: %w", err)
 	}
 
 	if scanner.Text() != "" {
@@ -91,7 +59,7 @@ func getConvertedInput() ([]uint8, error) {
 				return userData, fmt.Errorf("failed to read file properties: %w", err)
 			}
 
-			userData, err = getBytes(file, int(fileInfo.Size())*BitsInByte)
+			userData, err = getBytes(file, int(fileInfo.Size())*8)
 			if err != nil {
 				return userData, fmt.Errorf("failed converting to bytes slice: %w", err)
 			}
@@ -107,36 +75,7 @@ func getConvertedInput() ([]uint8, error) {
 			userData = userData[:zeroesOffset]
 			return userData, nil
 		}
-		userData = scanner.Bytes()
+		userData = scanner.Text()
 	}
 	return userData, nil
-}
-
-// TODO: Make more performant. Currently O(n)
-func getBitSlice(inputData []uint8) ([][]uint8, error) {
-	dataBytes := make([][]uint8, len(inputData))
-	// Each index indicates each value in provided array/slice of data.
-	for dataBytesIndex := range len(dataBytes) {
-		// Each index indicates each bit of each value provided in array/slice of data.
-		dataBytes[dataBytesIndex] = make([]uint8, BitsInByte)
-		for dataBitsIndex := range BitsInByte {
-			currentBit := (inputData[dataBytesIndex] & uint8(getIntPower(2, dataBitsIndex)))
-
-			// [7-dataBitsIndex] inverts the order bits are pushed onto the slice. Removing 7- will cause a flip: [0 64 0 0 8 0 0 0] -> [0 0 0 8 0 0 64 0]
-			dataBytes[dataBytesIndex][7-dataBitsIndex] = currentBit
-		}
-	}
-	return dataBytes, nil
-}
-
-func getBytes(image *os.File, size int) ([]uint8, error) {
-	imageBytes := make([]uint8, size)
-
-	reader := bufio.NewReader(image)
-	_, err := reader.Read(imageBytes)
-	if err != nil {
-		return imageBytes, fmt.Errorf("failed to read image bytes: %w", err)
-	}
-
-	return imageBytes, nil
 }
